@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Opus Usage Tracker</title>
+    <link rel="stylesheet" href="/styles.css?v=2" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="kicker">Usage monitor</p>
+          <h1>Opus Tracker</h1>
+          <p class="subtitle">Monitor your API usage, token consumption, and request logs.</p>
+        </div>
+        <div class="status-chip" id="healthStatus">
+          <span class="status-dot"></span>
+          <span>connecting</span>
+        </div>
+      </header>
+
+      <section class="controls-row">
+        <div class="tabs" role="tablist" aria-label="Dashboard view">
+          <button class="tab is-active" type="button">Overview</button>
+          <button class="tab" type="button">Details</button>
+        </div>
+        <div class="range-tabs" aria-label="Time range">
+          <button class="range is-active" type="button">Today</button>
+          <button class="range" type="button">24h</button>
+          <button class="range" type="button">7D</button>
+          <button class="range" type="button">30D</button>
+          <button class="range" type="button">60D</button>
+        </div>
+      </section>
+
+      <section class="metric-grid">
+        <article class="metric-card">
+          <span>Total Requests</span>
+          <strong id="todayRequests">0</strong>
+        </article>
+        <article class="metric-card accent-orange">
+          <span>Input + Cache Tokens</span>
+          <strong id="inputTokens">0</strong>
+        </article>
+        <article class="metric-card accent-green">
+          <span>Output Tokens</span>
+          <strong id="outputTokens">0</strong>
+        </article>
+        <article class="metric-card accent-yellow">
+          <span>Est. Cost</span>
+          <strong id="todayCost">$0.00</strong>
+          <small>Estimated, not actual billing</small>
+        </article>
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="router-map">
+          <div class="map-lines" aria-hidden="true">
+            <span class="curve c1"></span>
+            <span class="curve c2"></span>
+            <span class="curve c3"></span>
+            <span class="curve c4"></span>
+            <span class="curve c5"></span>
+            <span class="curve c6"></span>
+          </div>
+          <div class="map-node">
+            <span class="node-icon">O</span>
+            <span id="nodeLabel">Opus 4.7</span>
+          </div>
+          <div class="map-footer">
+            <span id="avgLatency">0ms avg</span>
+            <span id="totalCost">$0.000000 total</span>
+          </div>
+        </article>
+
+        <article class="recent-panel">
+          <div class="panel-head">
+            <h2>Recent Requests</h2>
+            <a href="/api/export.ndjson">Export</a>
+          </div>
+          <div class="request-list" id="requestList"></div>
+        </article>
+      </section>
+
+      <section class="bottom-grid">
+        <article class="test-panel">
+          <div class="panel-head">
+            <h2>Quick Probe</h2>
+            <span id="modelCount">0 models</span>
+          </div>
+          <form id="demoForm">
+            <label>
+              Model
+              <input id="demoModel" value="claude-opus-4-7" autocomplete="off" />
+            </label>
+            <label>
+              Prompt
+              <textarea id="demoPrompt" rows="3">Responda exatamente: ok</textarea>
+            </label>
+            <button type="submit">Send Request</button>
+          </form>
+          <pre id="demoResult">Waiting for request...</pre>
+        </article>
+
+        <article class="config-panel">
+          <div class="panel-head">
+            <h2>Claude Code Config</h2>
+            <span>Proxy URL</span>
+          </div>
+          <pre><code>{
+  "model": "claude-opus-4-7",
+  "availableModels": ["claude-opus-4-7"],
+  "env": {
+    "ANTHROPIC_BASE_URL": "<span id="baseUrlText">http://localhost:8787</span>",
+    "ANTHROPIC_MODEL": "claude-opus-4-7",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-7"
+  },
+  "theme": "dark",
+  "effortLevel": "xhigh"
+}</code></pre>
+        </article>
+      </section>
+    </main>
+    <script src="/app.js?v=2" type="module"></script>
+  </body>
+</html>

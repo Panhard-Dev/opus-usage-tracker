@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: opus-usage-tracker
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: UPSTREAM_BASE_URL
+        value: https://base.actionplandigital.com.br
+      - key: DEFAULT_MODEL
+        value: claude-opus-4-7
+      - key: STORE_PROMPTS
+        value: "false"
+      - key: STORE_RESPONSES
+        value: "false"
+      - key: TRACKER_API_KEY
+        sync: false

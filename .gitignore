@@ -1,0 +1,8 @@
+node_modules/
+data/*.ndjson
+data/*.tmp
+data/*.log
+.env
+.liz/
+.DS_Store
+npm-debug.log*

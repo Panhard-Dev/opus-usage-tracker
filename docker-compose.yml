@@ -1,0 +1,13 @@
+services:
+  tracker:
+    build: .
+    ports:
+      - "8787:8787"
+    environment:
+      PORT: "8787"
+      UPSTREAM_BASE_URL: "https://base.actionplandigital.com.br"
+      DEFAULT_MODEL: "claude-opus-4-7"
+      STORE_PROMPTS: "false"
+      STORE_RESPONSES: "false"
+    volumes:
+      - ./data:/app/data
