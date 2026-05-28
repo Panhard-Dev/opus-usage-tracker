@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Opus Usage Tracker</title>
+    <link rel="stylesheet" href="/styles.css?v=21" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar" aria-label="Primary navigation">
+        <div class="sidebar-brand">
+          <span class="brand-icon">O</span>
+          <div class="brand-text">
+            <span class="brand-title">IA</span>
+            <span class="brand-sub">Tracker</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button type="button" class="nav-item is-active" data-view="dashboard">
+            <span class="nav-dot"></span>
+            Dashboard
+          </button>
+          <button type="button" class="nav-item" data-view="models">
+            <span class="nav-dot"></span>
+            Modelos
+          </button>
+          <button type="button" class="nav-item" data-view="combos">
+            <span class="nav-dot"></span>
+            Criar Combos
+          </button>
+
+          <span class="nav-section">Admin</span>
+          <button type="button" class="nav-item" data-view="apikeys">
+            <span class="nav-dot"></span>
+            API Keys
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <span class="status-dot"></span>
+          <span id="sidebarUserEmail">v1.0.0</span>
+          <button type="button" class="btn-logout" id="btnLogout" title="Sair">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M16 17l5-5-5-5v3H9v4h7v3zM14 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-2h-2v2H5V4h9v2h2V4a2 2 0 0 0-2-2z"/></svg>
+          </button>
+        </div>
+      </aside>
+
+    <main class="app-shell">
+      <section class="view" data-view="dashboard">
+      <header class="topbar">
+        <div>
+          <p class="kicker">Usage monitor</p>
+          <h1>Opus Tracker</h1>
+          <p class="subtitle">Monitor your API usage, token consumption, and request logs.</p>
+        </div>
+        <div class="status-chip" id="healthStatus">
+          <span class="status-dot"></span>
+          <span>connecting</span>
+        </div>
+      </header>
+
+      <section class="controls-row">
+        <div class="tabs" role="tablist" aria-label="Dashboard view">
+          <button class="tab is-active" type="button">Overview</button>
+          <button class="tab" type="button">Details</button>
+        </div>
+        <div class="range-tabs" aria-label="Time range">
+          <button class="range is-active" type="button">Today</button>
+          <button class="range" type="button">24h</button>
+          <button class="range" type="button">7D</button>
+          <button class="range" type="button">30D</button>
+          <button class="range" type="button">60D</button>
+        </div>
+      </section>
+
+      <section class="metric-grid">
+        <article class="metric-card">
+          <span>Total Requests</span>
+          <strong id="todayRequests">0</strong>
+        </article>
+        <article class="metric-card accent-orange">
+          <span>Input + Cache Tokens</span>
+          <strong id="inputTokens">0</strong>
+        </article>
+        <article class="metric-card accent-green">
+          <span>Output Tokens</span>
+          <strong id="outputTokens">0</strong>
+        </article>
+        <article class="metric-card accent-yellow">
+          <span>Est. Cost</span>
+          <strong id="todayCost">$0.00</strong>
+          <small>Estimated, not actual billing</small>
+        </article>
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="neural">
+          <canvas class="neural-canvas" id="neuralCanvas"></canvas>
+
+          <div class="neural-overlay">
+            <header class="neural-head">
+              <div>
+                <span class="neural-kicker">Primary route</span>
+                <h2 class="neural-label" id="nodeLabel">Opus 4.7</h2>
+              </div>
+              <div class="neural-kpis">
+                <div class="neural-kpi">
+                  <span class="neural-kpi-label">avg latency</span>
+                  <span class="neural-kpi-value" id="avgLatency">0ms</span>
+                </div>
+                <div class="neural-kpi">
+                  <span class="neural-kpi-label">total spend</span>
+                  <span class="neural-kpi-value accent" id="totalCost">$0.000000</span>
+                </div>
+              </div>
+            </header>
+
+            <footer class="neural-legend" aria-hidden="true">
+              <span class="leg-item" style="--c:#ff6845"><i></i> Claude</span>
+              <span class="leg-item" style="--c:#4f8cff"><i></i> Gemini</span>
+              <span class="leg-item" style="--c:#9b5cff"><i></i> Qwen</span>
+              <span class="leg-item" style="--c:#1de9b6"><i></i> OpenAI</span>
+              <span class="leg-item" style="--c:#2f9bff"><i></i> DeepSeek</span>
+              <span class="leg-item" style="--c:#ffa726"><i></i> Llama</span>
+            </footer>
+          </div>
+        </article>
+
+        <article class="recent-panel">
+          <div class="panel-head">
+            <h2>Recent Requests</h2>
+            <a href="/api/export.ndjson">Export</a>
+          </div>
+          <div class="request-list" id="requestList"></div>
+        </article>
+      </section>
+
+      <section class="bottom-grid">
+        <article class="test-panel">
+          <div class="panel-head">
+            <h2>Quick Probe</h2>
+            <span id="modelCount">0 models</span>
+          </div>
+          <form id="demoForm">
+            <label>
+              Model
+              <input id="demoModel" value="claude-opus-4-7" autocomplete="off" />
+            </label>
+            <label>
+              Prompt
+              <textarea id="demoPrompt" rows="3">Responda exatamente: ok</textarea>
+            </label>
+            <button type="submit">Send Request</button>
+          </form>
+          <pre id="demoResult">Waiting for request...</pre>
+        </article>
+
+        <article class="config-panel">
+          <div class="panel-head">
+            <h2>Claude Code Config</h2>
+            <span>Proxy URL</span>
+          </div>
+          <pre><code>{
+  "model": "claude-opus-4-7",
+  "availableModels": ["claude-opus-4-7"],
+  "env": {
+    "ANTHROPIC_BASE_URL": "<span id="baseUrlText">http://localhost:8787</span>",
+    "ANTHROPIC_MODEL": "claude-opus-4-7",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-7"
+  },
+  "theme": "dark",
+  "effortLevel": "xhigh"
+}</code></pre>
+        </article>
+      </section>
+      </section>
+
+      <section class="view is-hidden" data-view="models">
+        <header class="topbar">
+          <div>
+            <p class="kicker">Models</p>
+            <h1>Modelos</h1>
+            <p class="subtitle">Uso agregado por modelo: requests, tokens e custo estimado.</p>
+          </div>
+          <div class="status-chip" id="modelsTotalChip">
+            <span class="status-dot online"></span>
+            <span id="modelsTotalLabel">0 models</span>
+          </div>
+        </header>
+
+        <section class="models-panel">
+          <div class="panel-head">
+            <h2>Breakdown por modelo</h2>
+            <span id="modelsRangeLabel">all time</span>
+          </div>
+          <div class="models-table" role="table">
+            <div class="models-head" role="row">
+              <span role="columnheader">Modelo</span>
+              <span role="columnheader">Requests</span>
+              <span role="columnheader">Input</span>
+              <span role="columnheader">Output</span>
+              <span role="columnheader">Cache</span>
+              <span role="columnheader">Custo est.</span>
+            </div>
+            <div class="models-body" id="modelsBody"></div>
+          </div>
+        </section>
+
+        <section class="models-catalog">
+          <div class="panel-head">
+            <h2>Modelos disponiveis</h2>
+            <span>vitrine</span>
+          </div>
+
+          <div class="catalog-grid" id="catalogGrid"></div>
+        </section>
+
+        <div class="model-modal is-hidden" id="modelModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+          <button type="button" class="modal-close" id="modalClose" aria-label="Fechar">X</button>
+          <div class="modal-inner" id="modalInner"></div>
+        </div>
+      </section>
+
+      <section class="view is-hidden" data-view="combos">
+        <header class="topbar">
+          <div>
+            <p class="kicker">Combos</p>
+            <h1>Criar Combos</h1>
+            <p class="subtitle">Agrupe modelos para enviar a mesma pergunta em paralelo e comparar respostas.</p>
+          </div>
+          <button type="button" class="btn-add" id="comboCreateBtn">+ Criar combo</button>
+        </header>
+
+        <section class="combos-list" id="combosList"></section>
+
+        <div class="model-modal is-hidden" id="comboRunner" role="dialog" aria-modal="true">
+          <button type="button" class="modal-close" id="comboRunnerClose" aria-label="Fechar">X</button>
+          <div class="modal-inner" id="comboRunnerInner"></div>
+        </div>
+
+        <div class="model-modal is-hidden" id="comboModal" role="dialog" aria-modal="true" aria-labelledby="comboModalTitle">
+          <button type="button" class="modal-close" id="comboModalClose" aria-label="Fechar">X</button>
+          <div class="modal-inner combo-form-inner">
+            <header class="provider-topbar">
+              <nav class="provider-breadcrumb">
+                <button type="button" class="crumb-link" id="comboFormBack">Combos</button>
+                <span class="crumb-sep">&gt;</span>
+                <span class="crumb-current"><strong id="comboModalTitle">Novo combo</strong></span>
+              </nav>
+            </header>
+
+            <section class="provider-card">
+              <header class="provider-card-head">
+                <h2>Detalhes</h2>
+              </header>
+              <form id="comboForm" class="combo-form">
+                <label class="combo-field">
+                  <span>Nome</span>
+                  <input id="comboName" placeholder="ex: Compare top 3" autocomplete="off" required />
+                </label>
+                <label class="combo-field">
+                  <span>Descricao (opcional)</span>
+                  <input id="comboDesc" placeholder="ex: meus modelos preferidos para revisar codigo" autocomplete="off" />
+                </label>
+              </form>
+            </section>
+
+            <section class="provider-card">
+              <header class="provider-card-head">
+                <h2>Modelos do combo</h2>
+                <span class="combo-count" id="comboCountLabel">0 selecionados</span>
+              </header>
+              <div class="combo-picker" id="comboPicker"></div>
+            </section>
+
+            <section class="provider-card">
+              <header class="provider-card-head">
+                <h2>Configuracao por modelo</h2>
+                <span class="combo-count">role, skills e system prompt</span>
+              </header>
+              <div class="combo-configs" id="comboConfigs"></div>
+            </section>
+
+            <footer class="combo-actions">
+              <button type="button" class="btn-ghost-2" id="comboCancel">Cancelar</button>
+              <button type="button" class="btn-add" id="comboSave">Salvar combo</button>
+            </footer>
+          </div>
+        </div>
+      </section>
+
+      <section class="view is-hidden" data-view="apikeys">
+        <header class="topbar">
+          <div>
+            <p class="kicker">Admin</p>
+            <h1>API Keys</h1>
+            <p class="subtitle">Gere chaves <code>tracker-api-...</code> para usar nossos modelos via API.</p>
+          </div>
+          <button type="button" class="btn-add" id="apiKeyCreateBtn">+ Gerar nova chave</button>
+        </header>
+
+        <section class="provider-card">
+          <header class="provider-card-head">
+            <h2>Suas chaves</h2>
+            <span id="apiKeysCount" class="combo-count">0 chaves</span>
+          </header>
+          <div id="apiKeysList" class="apikeys-list"></div>
+        </section>
+
+        <section class="provider-card">
+          <header class="provider-card-head">
+            <h2>Como usar</h2>
+          </header>
+          <pre class="apikey-usage"><code>curl https://localhost:8787/v1/messages \
+  -H "x-api-key: tracker-api-0xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
+  -H "content-type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{
+    "model": "claude-opus-4-7",
+    "max_tokens": 200,
+    "messages": [{"role": "user", "content": "Ola"}]
+  }'</code></pre>
+        </section>
+
+        <div class="model-modal is-hidden" id="apiKeyCreateModal" role="dialog" aria-modal="true">
+          <div class="keycreate-overlay"></div>
+          <div class="keycreate-dialog">
+            <button type="button" class="keycreate-close" id="apiKeyCreateClose" aria-label="Fechar">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg>
+            </button>
+
+            <div class="keycreate-icon">
+              <svg viewBox="0 0 24 24" width="32" height="32"><path fill="currentColor" d="M21 10h-8.35A5.99 5.99 0 0 0 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6a5.99 5.99 0 0 0 5.65-4H13l2 2 2-2 2 2 4-4.04L21 10zm-14 5c-1.65 0-3-1.35-3-3s1.35-3 3-3 3 1.35 3 3-1.35 3-3 3z"/></svg>
+            </div>
+
+            <h2 class="keycreate-title">Gerar nova API key</h2>
+            <p class="keycreate-desc">De um nome pra reconhecer essa chave depois (ex: <span>cli local</span>, <span>producao</span>, <span>vscode pessoal</span>).</p>
+
+            <form id="apiKeyCreateForm" class="keycreate-form">
+              <label class="keycreate-field">
+                <span>Nome da chave</span>
+                <input id="apiKeyNameInput" type="text" placeholder="Ex: minha cli local" maxlength="50" autocomplete="off" required />
+                <small class="keycreate-hint">maximo 50 caracteres</small>
+              </label>
+
+              <div class="keycreate-preview">
+                <span class="keycreate-preview-label">prefixo gerado</span>
+                <code>tracker-api-0••••••••••••••••</code>
+              </div>
+
+              <p class="keycreate-error" id="apiKeyCreateError"></p>
+
+              <div class="keycreate-actions">
+                <button type="button" class="btn-ghost-2" id="apiKeyCreateCancel">Cancelar</button>
+                <button type="submit" class="btn-add" id="apiKeyCreateConfirm">
+                  <svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px"><path fill="currentColor" d="M12 2L1 21h22L12 2zm0 4l7.5 13h-15L12 6zm-1 4v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
+                  Gerar chave
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="model-modal is-hidden" id="apiKeyShowModal" role="dialog" aria-modal="true">
+          <button type="button" class="modal-close" id="apiKeyShowClose" aria-label="Fechar">X</button>
+          <div class="modal-inner">
+            <header class="provider-topbar">
+              <nav class="provider-breadcrumb">
+                <span class="crumb-current"><strong>Sua nova chave</strong></span>
+              </nav>
+            </header>
+            <section class="provider-card">
+              <p class="apikey-warn">Copie agora. <strong>Por seguranca essa chave nao sera mostrada de novo.</strong></p>
+              <div class="apikey-show">
+                <code id="apiKeyShowValue"></code>
+                <button type="button" class="conn-btn" id="apiKeyCopyBtn">
+                  <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>
+                  <span>Copiar</span>
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+    </div>
+    <script src="/boot.js?v=1" type="module"></script>
+  </body>
+</html>
