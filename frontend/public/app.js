@@ -1,3 +1,5 @@
+import { apiUrl } from "./api.js";
+
 // --- Auth wiring (boot.js exposes window.__auth__) ---
 const AUTH = window.__auth__;
 const sidebarEmail = document.querySelector("#sidebarUserEmail");
@@ -35,6 +37,9 @@ const catalogGrid = document.querySelector("#catalogGrid");
 const modelModal = document.querySelector("#modelModal");
 const modalInner = document.querySelector("#modalInner");
 const modalClose = document.querySelector("#modalClose");
+const exportLink = document.querySelector('a[href="/api/export.ndjson"]');
+
+if (exportLink) exportLink.href = apiUrl("/api/export.ndjson");
 
 const CATALOG = [
   {
@@ -45,11 +50,12 @@ const CATALOG = [
     logo: "https://cdn.simpleicons.org/anthropic/ff6845",
     badge: "Active",
     desc: "Familia Opus / Sonnet / Haiku. Modelo padrao do tracker. Excelente para raciocinio, codigo e tool use.",
-    tags: ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"],
+    tags: ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"],
     site: "https://www.anthropic.com",
     docs: "https://docs.anthropic.com",
     note: "Login via API key (console.anthropic.com).",
     models: [
+      { id: "claude-opus-4-8", label: "Claude Opus 4.8" },
       { id: "claude-opus-4-7", label: "Claude Opus 4.7" },
       { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
       { id: "claude-opus-4-5", label: "Claude Opus 4.5" },
@@ -262,7 +268,7 @@ function renderCatalog() {
 
 async function refreshProviderStatus() {
   try {
-    const data = await fetch("/api/providers/status").then((r) => r.json());
+    const data = await fetch(apiUrl("/api/providers/status")).then((r) => r.json());
     LAST_PROVIDER_STATUS = {};
     for (const provider of data.providers) {
       LAST_PROVIDER_STATUS[provider.id] = provider;
@@ -404,7 +410,7 @@ async function testModelConnection(row, provider) {
   if (statusEl) statusEl.textContent = "testing...";
 
   try {
-    const result = await fetch("/api/test-model", {
+    const result = await fetch(apiUrl("/api/test-model"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ model: modelId })
@@ -1164,7 +1170,7 @@ async function executeCombo(combo) {
     const system = systemParts.join("\n");
 
     try {
-      const r = await fetch("/api/combo-call", {
+      const r = await fetch(apiUrl("/api/combo-call"), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ model: m.id, system, prompt, max_tokens: 600 })
@@ -1307,7 +1313,7 @@ demoForm.addEventListener("submit", async (event) => {
   demoResult.textContent = "Sending request...";
 
   try {
-    const response = await fetch("/api/demo", {
+    const response = await fetch(apiUrl("/api/demo"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -1343,8 +1349,8 @@ for (const button of document.querySelectorAll(".tab, .range")) {
 async function refresh() {
   try {
     const [health, stats] = await Promise.all([
-      fetch("/api/health").then((response) => response.json()),
-      fetch("/api/stats").then((response) => response.json())
+      fetch(apiUrl("/api/health")).then((response) => response.json()),
+      fetch(apiUrl("/api/stats")).then((response) => response.json())
     ]);
     renderHealth(health);
     renderStats(stats);
@@ -1558,8 +1564,24 @@ const apiKeyCreateForm = document.querySelector("#apiKeyCreateForm");
 const apiKeyNameInput = document.querySelector("#apiKeyNameInput");
 const apiKeyCreateConfirm = document.querySelector("#apiKeyCreateConfirm");
 
+async function readJsonOrMessage(response) {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      ok: false,
+      message: response.ok
+        ? "Resposta invalida do backend."
+        : `Backend retornou HTTP ${response.status}.`
+    };
+  }
+}
+
 function openCreateKeyModal() {
   apiKeyNameInput.value = "";
+  if (apiKeyCreateError) apiKeyCreateError.textContent = "";
   apiKeyCreateModal.classList.remove("is-hidden");
   document.body.classList.add("no-scroll");
   setTimeout(() => apiKeyNameInput.focus(), 60);
@@ -1594,22 +1616,25 @@ if (apiKeyCreateForm) {
         method: "POST",
         body: JSON.stringify({ name })
       });
-      const data = await r.json();
-      if (!data.ok || !data.key) {
+      const data = await readJsonOrMessage(r);
+      if (!r.ok || !data.ok || !data.key) {
         const msg = String(data.error || data.message || "Erro desconhecido");
         let friendly = msg;
         if (/Could not find the table.*api_keys/i.test(msg)) {
           friendly = "A tabela 'api_keys' nao existe no Supabase. Rode o SQL em supabase/schema.sql.";
         } else if (/relation .* does not exist/i.test(msg)) {
           friendly = "Tabela ausente no banco. Rode o schema SQL no Supabase.";
+        } else if (r.status === 401) {
+          friendly = "Sua sessao expirou. Faca login de novo e gere a chave.";
+        } else if (r.status === 404) {
+          friendly = "Frontend nao achou o backend de API keys. Confira a URL do backend em producao.";
         }
         if (apiKeyCreateError) apiKeyCreateError.textContent = friendly;
         return;
       }
       closeCreateKeyModal();
       apiKeyShowValue.textContent = data.key;
-      apiKeyShowModal.classList.remove("is-hidden");
-      document.body.classList.add("no-scroll");
+      openShowKeyModal();
       loadApiKeys();
     } catch (err) {
       if (apiKeyCreateError) apiKeyCreateError.textContent = "Erro de rede: " + err.message;
@@ -1620,9 +1645,22 @@ if (apiKeyCreateForm) {
   });
 }
 
-if (apiKeyShowClose) apiKeyShowClose.addEventListener("click", () => {
+function openShowKeyModal() {
+  apiKeyShowModal.classList.remove("is-hidden");
+  document.body.classList.add("no-scroll");
+}
+
+function closeShowKeyModal() {
   apiKeyShowModal.classList.add("is-hidden");
   document.body.classList.remove("no-scroll");
+}
+
+if (apiKeyShowClose) apiKeyShowClose.addEventListener("click", closeShowKeyModal);
+if (apiKeyShowModal) apiKeyShowModal.addEventListener("click", (e) => {
+  if (e.target === apiKeyShowModal) closeShowKeyModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && apiKeyShowModal && !apiKeyShowModal.classList.contains("is-hidden")) closeShowKeyModal();
 });
 
 if (apiKeyCopyBtn) apiKeyCopyBtn.addEventListener("click", async () => {
